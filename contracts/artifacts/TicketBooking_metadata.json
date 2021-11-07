@@ -1,0 +1,77 @@
+{
+	"compiler": {
+		"version": "0.8.9+commit.e5eed63a"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "_title",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_amountOfSeatpPerRow",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "rows",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "_date",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "_linkSeatView",
+						"type": "string"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/Ticketbookingsystem.sol": "TicketBooking"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"contracts/Ticketbookingsystem.sol": {
+			"keccak256": "0xbb1f835b7db23859755d402ecfffbd56514f58f1b2be23549615a1e6b1fcb56b",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://7117b2e18d777684ec50970bb40d65c3a51597812ae7b0a45038f10bad52e342",
+				"dweb:/ipfs/QmUDJSJQ6B4sadRhFfjQTXQDXx6xD6hegX6GRwu1HV9QHj"
+			]
+		}
+	},
+	"version": 1
+}
