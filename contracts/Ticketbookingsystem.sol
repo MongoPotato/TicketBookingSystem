@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract TicketBooking{
+contract Show{
     
     struct Seat{
         string title;
@@ -11,11 +11,11 @@ contract TicketBooking{
         string linkSeatView;
     }
     //lacks concatenation of strings for linkSeatView
-    string title;
+    string private title;
     Seat[] private seats;
-    string linkSeatView;
-    string temporary;
-    uint amountOfSeatpPerRow;
+    string private linkSeatView;
+    string private temporary;
+    uint private amountOfSeatpPerRow;
     
     
     constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) public{
@@ -60,7 +60,14 @@ contract TicketBooking{
     }
     
     
+}
+
+contract TicketBooking is Show {
+    string name;
     
+    constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView, string memory _name) public Show(_title, _amountOfSeatpPerRow, rows, _date, _linkSeatView){
+        name = _name;
+    }
     
     
 }
