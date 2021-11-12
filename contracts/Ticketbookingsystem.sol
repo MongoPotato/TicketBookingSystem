@@ -62,11 +62,17 @@ contract Show{
     
 }
 
-contract TicketBooking is Show {
+contract TicketBooking {
     string name;
-    
-    constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView, string memory _name) public Show(_title, _amountOfSeatpPerRow, rows, _date, _linkSeatView){
+    Show[] shows;
+    //list of shows and not just 1 show
+    constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView, string memory _name){
         name = _name;
+    }
+    
+    function create(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) public {
+        Show show = new Show(_title, _amountOfSeatpPerRow, rows, _date, _linkSeatView);
+        shows.push(show);
     }
     
     
