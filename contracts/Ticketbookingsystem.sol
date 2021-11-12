@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+import "github.com/Arachnid/solidity-stringutils/strings.sol";
 
 contract Show{
     
@@ -21,16 +22,24 @@ contract Show{
     constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) public{
         title = _title;
         amountOfSeatpPerRow = _amountOfSeatpPerRow;
+        string s1 = "/row/";
+        string temp;
+        string s3 = "/";
         linkSeatView = _linkSeatView;
+        string temporary;
+        
         for(uint i = 0; i < rows; i++){
-            //linkSeatView = _linkSeatView;
-            //linkSeatView(bytes.concat(bytes("/row/"), "+", bytes(uint2str(i))));
-            //linkSeatView = linkSeatView + "/row/" + uint2str(i);
+            linkSeatView = _linkSeatView;
+            string s2 = uint2str(i);
+            temp = (s1.toSlice().concat(s2.toSlice())); // /row/ + i
+            linkSeatView = (linkSeatView.toSlice().concat(temp.toSlice())); //linkSeatView + /row/ + i
             temporary = linkSeatView;
+            
             for(uint j = 0; j < amountOfSeatpPerRow; j++){
-                //linkSeatView = linkSeatView + "/" + uint2str(j);
+                temp = (s3.toSlice().concat(uint2str(j).toSlice())); // "/" + j
+                linkSeatView = (linkSeatView.toSlice().concat.temp.toSlice()); // linkSeatView + / + j
                 seats.push(Seat({title: title, date: _date, seatNumber: j, row: i, linkSeatView: linkSeatView}));
-                //linkSeatView = temp;
+                linkSeatView = temporary;
             }
         }
     }
