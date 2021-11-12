@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import "github.com/Arachnid/solidity-stringutils/strings.sol";
+//import "github.com/Arachnid/solidity-stringutils/strings.sol";
 
 contract Show{
     
@@ -15,31 +15,31 @@ contract Show{
     string private title;
     Seat[] private seats;
     string private linkSeatView;
-    string private temporary;
+    //string private temporary;
     uint private amountOfSeatpPerRow;
     
     
     constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) public{
         title = _title;
         amountOfSeatpPerRow = _amountOfSeatpPerRow;
-        string s1 = "/row/";
-        string temp;
-        string s3 = "/";
+        //string memory s1 = "/row/";
+        //string memory temp;
+        //string memory s2;
+        //string memory s3 = "/";
         linkSeatView = _linkSeatView;
-        string temporary;
         
         for(uint i = 0; i < rows; i++){
-            linkSeatView = _linkSeatView;
-            string s2 = uint2str(i);
-            temp = (s1.toSlice().concat(s2.toSlice())); // /row/ + i
-            linkSeatView = (linkSeatView.toSlice().concat(temp.toSlice())); //linkSeatView + /row/ + i
-            temporary = linkSeatView;
+            //linkSeatView = _linkSeatView;
+            //s2 = uint2str(i);
+            //temp = s1.toSlice().concat(s2.toSlice()); // /row/ + i
+            //linkSeatView = (linkSeatView.toSlice().concat(temp.toSlice())); //linkSeatView + /row/ + i
+            //temporary = linkSeatView;
             
             for(uint j = 0; j < amountOfSeatpPerRow; j++){
-                temp = (s3.toSlice().concat(uint2str(j).toSlice())); // "/" + j
-                linkSeatView = (linkSeatView.toSlice().concat.temp.toSlice()); // linkSeatView + / + j
+                //temp = (s3.toSlice().concat(uint2str(j).toSlice())); // "/" + j
+                //linkSeatView = (linkSeatView.toSlice().concat.temp.toSlice()); // linkSeatView + / + j
                 seats.push(Seat({title: title, date: _date, seatNumber: j, row: i, linkSeatView: linkSeatView}));
-                linkSeatView = temporary;
+                //linkSeatView = temporary;
             }
         }
     }
