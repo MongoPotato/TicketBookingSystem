@@ -39,6 +39,7 @@ contract TicketStorage is ERC721URIStorage{
 contract TicketSystem is ERC721 {
     using Counters for Counters.Counter;
     Counters.Counter private ticketIds;
+    Counters.Counter private boughtTickets;
     
     address payable owner;
     uint256 ticketPrice = 0.1 ether;
@@ -53,7 +54,7 @@ contract TicketSystem is ERC721 {
         uint ticketId;
         address ticketContract;
         uint256 tokenId;
-        //string seatId;
+        string seatName;
         address payable seller;
         address payable owner;
         uint256 ticketPrice;
@@ -62,14 +63,15 @@ contract TicketSystem is ERC721 {
     event TicketCreated ( uint indexed tickedId, address indexed ticketContract, uint256 indexed tokenId, address seller, address owner, uint256 price);
     mapping(uint256 => Ticket) private idToTicket;
     
-    function createTicket(address ticketContract, uint256 tokenId, uint256 price) public payable returns (uint256){
+    mapping(uint256 => string) private idToSeatName;
+    
+    function createTicket(address ticketContract, uint256 tokenId,string memory seatName, uint256 price) public payable returns (uint256){
         
         ticketIds.increment();
         uint256 ticketId = ticketIds.current();
         //string memory seatId = tokenURI(tokenId);
-        
-        idToTicket[ticketId] = Ticket(ticketId, ticketContract,tokenId,payable(msg.sender),payable(address(0)), price);
-        
+        idToTicket[ticketId] = Ticket(ticketId, ticketContract,tokenId,seatName,payable(msg.sender),payable(address(0)), price);
+        idToSeatName[ticketId] = seatName;
         IERC721(ticketContract).transferFrom(msg.sender, address(this), tokenId);
         
         emit TicketCreated(ticketId,ticketContract,tokenId,msg.sender, address(0),price);
@@ -81,20 +83,26 @@ contract TicketSystem is ERC721 {
         
     }
     
-    function buyTicket(address ticketContract, string memory seatId) public payable {
+    function buyTicket(address contractAddress, string memory seatName) public payable {
         //fetch tickedID and buy that specific token. 
+        require(msg.value == ticketPrice, "The price for one ticket is 0.1 Ether");
+        
+        uint tokenId = fetchTokenIdFromSeatName(seatName);
+        IERC721(contractAddress).transferFrom(address(this), msg.sender,tokenId);
+        boughtTickets.increment();
+        
         
     }
     
     //Returns index of specified seatId. To be used in buyTicket.
-    function fetchTicketIdFromSeatId(string memory seatId) public view returns (uint) {
+    function fetchTokenIdFromSeatName(string memory seatName) public view returns (uint) {
         
         uint totalTickets = ticketIds.current();
         //string memory seatNumber = seatId;
         for (uint i = 0; i < totalTickets; i++){
-            string memory temp = tokenURI(i);
-            if ( compareStringsByBytes(temp, seatId) == true){
-                return idToTicket[i];
+            string memory temp = idToSeatName[i];
+            if ( compareStringsByBytes(temp, seatName) == true){
+                return i;
             }
         }
         return totalTickets;
