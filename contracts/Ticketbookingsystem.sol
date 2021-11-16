@@ -75,7 +75,7 @@ contract TicketBooking {
     string name;
     Show[] shows;
     //list of shows and not just 1 show
-    constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView, string memory _name){
+    constructor(string memory _name){
         name = _name;
     }
     
