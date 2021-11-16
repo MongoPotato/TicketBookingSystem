@@ -51,13 +51,15 @@ contract TicketSystem is ERC721 {
     }
     
     struct Ticket {
-        uint ticketId;
-        address ticketContract;
+        //uint ticketId;
+        //address ticketContract;
         uint256 tokenId;
-        string seatName;
+        //string seatName;
         address payable seller;
         address payable owner;
         uint256 ticketPrice;
+        
+        //seat
     }
     
     event TicketCreated ( uint indexed tickedId, address indexed ticketContract, uint256 indexed tokenId, address seller, address owner, uint256 price);
@@ -65,23 +67,46 @@ contract TicketSystem is ERC721 {
     
     mapping(uint256 => string) private idToSeatName;
     
-    function createTicket(address ticketContract, uint256 tokenId,string memory seatName, uint256 price) public payable returns (uint256){
+    function createTicket() public payable returns (uint256){
+        uint256 tokenId = 0;
+        _mint(owner, tokenId);
+        //Ticket(tokenId, owner, owner, 1);
+        
+        return tokenId;
+    }
+    
+    
+    
+    /*
+    
+    function createTicket(address ticketContract, uint256 tokenId,string memory seatName) public payable returns (uint256){
         
         ticketIds.increment();
         uint256 ticketId = ticketIds.current();
         //string memory seatId = tokenURI(tokenId);
-        idToTicket[ticketId] = Ticket(ticketId, ticketContract,tokenId,seatName,payable(msg.sender),payable(address(0)), price);
+        idToTicket[ticketId] = Ticket(ticketId, ticketContract,tokenId,seatName,payable(msg.sender),payable(ticketContract), ticketPrice);
         idToSeatName[ticketId] = seatName;
-        IERC721(ticketContract).transferFrom(msg.sender, address(this), tokenId);
+        IERC721(ticketContract).transferFrom(msg.sender, ticketContract, tokenId);
         
-        emit TicketCreated(ticketId,ticketContract,tokenId,msg.sender, address(0),price);
+        emit TicketCreated(ticketId,ticketContract,tokenId,msg.sender, ticketContract, ticketPrice);
         
         return tokenId;
         
         
         
         
+    }*/
+    
+    function buyTicket() public payable returns(uint256){
+        address buyer = msg.sender;
+        require(msg.value >= ticketPrice);
+        uint256 tokenId = 0;
+        _transfer(ownerOf(tokenId), buyer, tokenId);
+        payable(ownerOf(tokenId)).transfer(msg.value);
+        return tokenId;
     }
+    
+    /*
     
     function buyTicket(address contractAddress, string memory seatName) public payable {
         //fetch tickedID and buy that specific token. 
@@ -93,6 +118,7 @@ contract TicketSystem is ERC721 {
         
         
     }
+    */
     
     //Returns index of specified seatId. To be used in buyTicket.
     function fetchTokenIdFromSeatName(string memory seatName) public view returns (uint) {
