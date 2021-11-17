@@ -173,6 +173,38 @@ contract Show is ERC721 {
     }
     
     /**
+     * Returns the Poster you have retrieved after validating
+     * else returns -1
+     * 
+    **/
+    
+    function getPoster() view public returns(string memory, bool) {
+        address customer = msg.sender;
+        for(uint256 i = 0; i < tickets.length; i++){
+            if(customer == posters[i].owner){
+                return (posters[i].posterTitle, posters[i].printed);
+            }
+        }
+        return ("You havent validated ticket", false);
+    }
+    
+    /**
+     * Returns the tokenId of the poster you have retrieved after a show
+     * else returns -1
+     * 
+    **/
+    
+    function getPosterId() view public returns(int) {
+        address customer = msg.sender;
+        for(uint256 i = 0; i < tickets.length; i++){
+            if(customer == posters[i].owner){
+                return int(posters[i].posterTokenId);
+            }
+        }
+        return -1;
+    }
+    
+    /**
      * Takes in the tokenId and verifies if it the owner of the token ticket
      * 
     **/
@@ -249,10 +281,12 @@ contract Show is ERC721 {
         emit Approval(customer, toaddress, tokenid);
     }
     
-     function validateTicket(uint256 tokenId, uint validationTimestamp) public payable {
-        require(_exists(tokenId) == true);
-        require(msg.sender == tickets[tokenId].owner);
-        require((tickets[tokenId].seat.timestamp -1800 > validationTimestamp) || (tickets[tokenId].seat.timestamp + 900 < validationTimestamp));
+     function validateTicket(uint256 tokenId, uint validationTimestamp) public {
+        require(_exists(tokenId) == true, "Not valid tokenId");
+        require(msg.sender != posters[tokenId].owner, "Ticket already validated");
+        require(msg.sender == tickets[tokenId].owner, "You do not own this token");
+        
+        require((tickets[tokenId].seat.timestamp -1800 <= validationTimestamp) || (tickets[tokenId].seat.timestamp + 900 >= validationTimestamp), "Not within timeslot of validation");
         if(tickets[tokenId].sold == true) {
             _burn(tokenId);
             releasePoster(tokenId, msg.sender);
@@ -265,6 +299,8 @@ contract Show is ERC721 {
         
         _mint(owner,posters[tokenId].posterTokenId);
         _transfer(ownerOf(posters[tokenId].posterTokenId), receiver, posters[tokenId].posterTokenId);
+        delete tickets[tokenId];
+        
         
         posters[tokenId].owner = receiver;
         posters[tokenId].printed = true;
@@ -272,9 +308,10 @@ contract Show is ERC721 {
         return posters[tokenId].posterTokenId;
         
     }
-    function verifyPrinted(uint256 tokenId) public view returns(bool, string memory) {
+    /*function verifyPrinted(uint256 tokenId) public view returns(bool, string memory) {
         return (posters[tokenId].printed, posters[tokenId].posterTitle);
     }
+    */
     
     
 }
