@@ -3,16 +3,16 @@ pragma solidity ^0.8.0;
 //import "github.com/Arachnid/solidity-stringutils/strings.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
-contract TicketSystem is ERC721{
-    
+
+contract Show is ERC721 {
     
     struct Ticket {
         uint256 tokenId;
-        address payable seller;
-        address payable owner;
+        address seller;
+        address owner;
         uint256 ticketPrice;
         bool sold;
-        Seat seats;
+        Seat seat;
     }
     
     struct Seat{
@@ -23,57 +23,18 @@ contract TicketSystem is ERC721{
         string linkSeatView;
     }
     
+    
+    //lacks concatenation of strings for linkSeatView
     string private title;
     Seat[] private seats;
     Ticket[] private tickets;
     string private linkSeatView;
-    //string private temporary;
     uint private amountOfSeatpPerRow;
     address payable owner;
     Seat private seat;
-
-    constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
-        title = _title;
-        amountOfSeatpPerRow = _amountOfSeatpPerRow;
-        linkSeatView = _linkSeatView;
-        owner = payable(msg.sender);
-        
-        for(uint i = 0; i < rows; i++){
-            for(uint j = 0; j < amountOfSeatpPerRow; j++){
-                seats.push(Seat({title: title, date: _date, seatNumber: j, row: i, linkSeatView: linkSeatView}));
-            }
-        }
-    }
+    uint256 ticketPrice = 0.1 ether;
     
-    function createTicket(uint256 ticketprice) public {
-        require(msg.sender == owner, 'Not owner to of Ticket system');
-        for(uint256 i = 0; i < seats.length; i++){
-            tickets.push(Ticket({tokenId: i, seller: owner, owner: owner, ticketPrice: ticketprice, sold: false, seats: seats[i]}));
-        }
-    }
-    
-    
-    
-}
-
-
-contract Show{
-    
-    struct Seat{
-        string title;
-        string date;
-        uint256 seatNumber;
-        uint256 row;
-        string linkSeatView;
-    }
-    //lacks concatenation of strings for linkSeatView
-    string private title;
-    Seat[] private seats;
-    string private linkSeatView;
-    //string private temporary;
-    uint private amountOfSeatpPerRow;
-    
-    
+    /*
     constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) public{
         title = _title;
         amountOfSeatpPerRow = _amountOfSeatpPerRow;
@@ -98,45 +59,78 @@ contract Show{
             }
         }
     }
+    */
+    
+    constructor(string memory _title, uint _amountOfSeatpPerRow, uint _rows, string memory _date, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
+        title = _title;
+        amountOfSeatpPerRow = _amountOfSeatpPerRow;
+        linkSeatView = _linkSeatView;
+        owner = payable(msg.sender);
+        
+        for(uint i = 0; i < _rows; i++){
+            for(uint j = 0; j < amountOfSeatpPerRow; j++){
+                seats.push(Seat({title: title, date: _date, seatNumber: j, row: i, linkSeatView: linkSeatView}));
+            }
+        }
+    }
+    
+    function createTickets(uint256 ticketprice) public {
+        require(msg.sender == owner, 'Not owner to of Ticket system');
+        //ticketPrice = 0.1 ether; //fix this so you can input a price
+        for(uint256 i = 0; i < seats.length; i++){
+            tickets.push(Ticket({tokenId: i, seller: owner, owner: owner, ticketPrice: ticketprice, sold: false, seat: seats[i]}));
+        }
+        
+        for(uint256 i = 0; i < tickets.length; i++){
+            _mint(owner, tickets[i].tokenId);
+        }
+    }
     
     
-    //from https://stackoverflow.com/questions/47129173/how-to-convert-uint-to-string-in-solidity
-    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
-        if (_i == 0) {
-            return "0";
+    function buyTicket() public payable {
+        /* //fix this so it worrks 
+        uint i = 0;
+        while(!(tickets[i].sold)){
+            i = i + 1;
         }
-        uint j = _i;
-        uint len;
-        while (j != 0) {
-            len++;
-            j /= 10;
+        */
+        address buyer = msg.sender;
+        require(msg.value >= ticketPrice);
+        _transfer(ownerOf(tickets[0].tokenId), buyer, tickets[0].tokenId);
+        payable(ownerOf(tickets[0].tokenId)).transfer(msg.value);
+        tickets[0].owner = buyer;
+        tickets[0].sold = true;
+    }
+    
+    function getTicket() view public returns(uint256 seatNumber) {
+        address customer = msg.sender;
+        for(uint256 i = 0; i < tickets.length; i++){
+            if(customer == tickets[i].owner){
+                return tickets[i].seat.seatNumber;
+            }
         }
-        bytes memory bstr = new bytes(len);
-        uint k = len;
-        while (_i != 0) {
-            k = k-1;
-            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
-            bytes1 b1 = bytes1(temp);
-            bstr[k] = b1;
-            _i /= 10;
-        }
-        return string(bstr);
     }
     
     
 }
 
 contract TicketBooking {
-    string name;
-    Show[] shows;
+    
+    string private names;
+    Show[] private shows;
     //list of shows and not just 1 show
-    constructor(string memory _name){
-        name = _name;
+    constructor(string memory _names){
+        names = _names;
     }
     
-    function create(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) public {
-        Show show = new Show(_title, _amountOfSeatpPerRow, rows, _date, _linkSeatView);
+    function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, string memory _date, string memory _linkSeatView, uint price) public {
+        Show show = new Show(_title, _amountOfSeatpPerRow, _rows, _date, _linkSeatView);
+        show.createTickets(price);
         shows.push(show);
+    }
+    
+    function getShow(uint index) public  view returns(Show show){
+        return shows[index];
     }
  
     
