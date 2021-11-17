@@ -87,7 +87,7 @@ contract Show is ERC721 {
     }
     
     
-    function buyTicket() public payable {
+    function buyTicket() public payable returns(uint256){
         uint counter = 0;
         for(uint i = 0; i < tickets.length; i++){
             if(tickets[i].sold == false){
@@ -97,18 +97,47 @@ contract Show is ERC721 {
         }
         
         address buyer = msg.sender;
-        require(msg.value >= ticketPrice);
+        require(msg.value == ticketPrice);
         _transfer(ownerOf(tickets[counter].tokenId), buyer, tickets[counter].tokenId);
         payable(ownerOf(tickets[counter].tokenId)).transfer(msg.value);
         tickets[counter].owner = buyer;
         tickets[counter].sold = true;
+        
+        return tickets[counter].tokenId;
     }
     
-    function getTicket() view public returns(uint256 seatNumber) {
+    function getTicket() view public returns(int) {
         address customer = msg.sender;
         for(uint256 i = 0; i < tickets.length; i++){
             if(customer == tickets[i].owner){
-                return tickets[i].seat.seatNumber;
+                return int(tickets[i].seat.seatNumber);
+            }
+        }
+        return -1;
+    }
+    
+    function getTockenId() view public returns(int) {
+        address customer = msg.sender;
+        for(uint256 i = 0; i < tickets.length; i++){
+            if(customer == tickets[i].owner){
+                return int(tickets[i].tokenId);
+            }
+        }
+        return -1;
+    }
+    
+    function verifyOwner(uint256 tokenId) public view returns (address) {
+        return tickets[tokenId].owner;
+    }
+    
+    function refundTickets() payable public{
+        require(msg.sender == owner);
+        for(uint i = 0; i < tickets.length; i++){
+            if(tickets[i].sold == true){
+                _transfer(ownerOf(tickets[i].tokenId), owner, tickets[i].tokenId);
+                payable(ownerOf(tickets[i].tokenId)).transfer(ticketPrice);
+                tickets[i].owner = owner;
+                tickets[i].sold = false;
             }
         }
     }
