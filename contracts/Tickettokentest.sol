@@ -90,8 +90,14 @@ contract TicketSystem is ERC721 {
         uint tokenId = fetchTokenIdFromSeatName(seatName);
         IERC721(contractAddress).transferFrom(address(this), msg.sender,tokenId);
         boughtTickets.increment();
+        idToTicket[tokenId].owner = payable(msg.sender);
+        payable(owner).transfer(ticketPrice);
         
         
+    }
+    
+    function verifyOwner(uint256 tokenId) public view returns (address) {
+        return idToTicket[tokenId].owner;
     }
     
     //Returns index of specified seatId. To be used in buyTicket.
@@ -117,7 +123,7 @@ contract TicketSystem is ERC721 {
     function fetchAvailableTickets() public view returns (Ticket[] memory) {
         
         uint totalTickets = ticketIds.current();
-        uint ticketCount = ticketIds.current(); //Withdraw sold ones. Needs edit. 
+        uint ticketCount = ticketIds.current() - boughtTickets.current(); 
         uint currentIndex = 0;
         
         Ticket[] memory avaiableTickets = new Ticket[](ticketCount);
