@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 //import "github.com/Arachnid/solidity-stringutils/strings.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary/blob/master/contracts/BokkyPooBahsDateTimeLibrary.sol";
 
 
 contract Show is ERC721 {
@@ -17,7 +18,7 @@ contract Show is ERC721 {
     
     struct Seat{
         string title;
-        string date;
+        uint timestamp;
         uint256 seatNumber;
         uint256 row;
         string linkSeatView;
@@ -42,6 +43,8 @@ contract Show is ERC721 {
     address payable owner;
     Seat private seat;
     uint256 ticketPrice = 1 ether;
+    
+    mapping (uint => address) TicketApproval;
     
     /*
     constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) public{
@@ -70,19 +73,33 @@ contract Show is ERC721 {
     }
     */
     
-    constructor(string memory _title, uint _amountOfSeatpPerRow, uint _rows, string memory _date, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
-        title = _title;
+    
+    /**
+     * constructor that takes in the title, amountOfSeatpPerRow, the amount of rows, the date of the show, then the link for the seat
+     * It generates every seat available for that show.
+     * 
+    **/
+    
+    constructor(string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
+        title = _title; 
         amountOfSeatpPerRow = _amountOfSeatpPerRow;
         linkSeatView = _linkSeatView;
         owner = payable(msg.sender);
         
         for(uint i = 0; i < _rows; i++){
             for(uint j = 0; j < amountOfSeatpPerRow; j++){
-                seats.push(Seat({title: title, date: _date, seatNumber: j, row: i, linkSeatView: linkSeatView}));
+                seats.push(Seat({title: title, timestamp: _timestamp, seatNumber: j, row: i, linkSeatView: linkSeatView}));
             }
         }
     }
     
+    /**
+     * createTickets takes in the price of each ticket 
+     * and creates a ticket for every seat.
+     * It transfers ownership of every ticket to the organizer of the show
+     *  
+     * 
+    **/
     function createTickets() public payable {
         require(msg.sender == owner, 'Not owner to of Ticket system');
         ticketPrice = msg.value;
@@ -93,10 +110,16 @@ contract Show is ERC721 {
         
         for(uint256 i = 0; i < tickets.length; i++){
             _mint(owner, tickets[i].tokenId);
-            
         }
     }
     
+    
+    /**
+     * buyTicket function that checks available tickets and you get a random ticket
+     *  that is in the amount of available free tickets.
+     * The sender transfers funds to the organizer of the show
+     * returns the TokenId
+    **/
     
     function buyTicket() public payable returns(uint256){
         uint counter = 0;
@@ -117,6 +140,12 @@ contract Show is ERC721 {
         return tickets[counter].tokenId;
     }
     
+    /**
+     * Returns the ticket you have bought at a show
+     * else returns -1
+     * 
+    **/
+    
     function getTicket() view public returns(int) {
         address customer = msg.sender;
         for(uint256 i = 0; i < tickets.length; i++){
@@ -126,6 +155,12 @@ contract Show is ERC721 {
         }
         return -1;
     }
+    
+    /**
+     * Returns the tokenId of the ticket you have bought at a show
+     * else returns -1
+     * 
+    **/
     
     function getTockenId() view public returns(int) {
         address customer = msg.sender;
@@ -137,25 +172,87 @@ contract Show is ERC721 {
         return -1;
     }
     
+    /**
+     * Takes in the tokenId and verifies if it the owner of the token ticket
+     * 
+    **/
+    
     function verifyOwner(uint256 tokenId) public view returns (address) {
         return tickets[tokenId].owner;
     }
     
+    
+    /**
+     * Function refundTickets requires that the organizer of the show 
+     * is the sender. Then it goes through the whole function and transfer
+     * ownership of the token to the organizer and transfer the value
+     * of the tickets back to each person that have bought a ticket.
+     * 
+     * 
+    **/
     function refundTickets() payable public{
         require(msg.sender == owner);
         for(uint i = 0; i < tickets.length; i++){
             if(tickets[i].sold == true){
                 _transfer(ownerOf(tickets[i].tokenId), owner, tickets[i].tokenId);
-                payable(ownerOf(tickets[i].tokenId)).transfer(ticketPrice);
+                payable(ownerOf(tickets[i].tokenId)).transfer(ticketPrice); //i think this transfer funds to the owner of the ticket ??
                 tickets[i].owner = owner;
                 tickets[i].sold = false;
             }
         }
     }
     
-    function validateTicket(uint256 tokenId) public payable {
+    /**
+     * Function tradeticket takes in the address of the person you want to trade with and your tokenid
+     * you want to trade to that address. 
+     * 
+     * Requires that you have an Approval from the other person and that you own the token that
+     * you have in your input.
+     * 
+     * Then we transfer the token ticket to the toaddress and the sender receives the amount of 
+     * ether he used to buy his ether token ticket.
+     * 
+    **/
+    
+    function tradeTicket(address toaddress, uint256 tokenid) payable public{
+        address customer = msg.sender;
+        for(uint256 i = 0; i < tickets.length; i++){ //checks if you have a ticket
+            if(customer == tickets[i].owner && tokenid == tickets[i].tokenId){
+                i = tickets.length;
+            }
+        }
+        require(customer == tickets[tokenid].owner && TicketApproval[tokenid] == customer); 
+        _transfer(customer, toaddress, tickets[tokenid].tokenId);
+        payable(toaddress).transfer(ticketPrice); //i think this transfer funds to the owner of the ticket ??
+        tickets[tokenid].owner = toaddress;
+    }
+    
+    /**
+     * Function Approves takes in the address of the person you want to trade the ticket with and get money. 
+     * If we take an example where C request the ticket of D. Then C sends this request and D approves the 
+     * request and accepts the trade with C. C obtains the token from D while D gains his ether back for the 
+     * price of the ticket he bought.
+     * 
+     * 
+    **/
+    
+    function Approves(address toaddress, uint256 tokenid) external payable{
+        address customer = msg.sender;
+        for(uint256 i = 0; i < tickets.length; i++){ //checks if the sender has a ticket and if the token he sends in is valid
+            if(customer == tickets[i].owner && tokenid == tickets[i].tokenId){
+                i = tickets.length;
+            }
+        }
+        require(toaddress == tickets[tokenid].owner && customer != toaddress); //we require that the address of sender is 
+        //different from the address you want to send to and that the token you send in belongs to the address you send in
+        TicketApproval[tokenid] = toaddress; //we then send an approval
+        emit Approval(customer, toaddress, tokenid);
+    }
+    
+     function validateTicket(uint256 tokenId, uint validationTimestamp) public payable {
         require(_exists(tokenId) == true);
         require(msg.sender == tickets[tokenId].owner);
+        require((tickets[tokenId].seat.timestamp -1800 > validationTimestamp) || (tickets[tokenId].seat.timestamp + 900 < validationTimestamp));
         if(tickets[tokenId].sold == true) {
             _burn(tokenId);
             releasePoster(tokenId, msg.sender);
@@ -175,8 +272,8 @@ contract Show is ERC721 {
         return posters[tokenId].posterTokenId;
         
     }
-    function verifyPrinted(uint256 tokenId) public view returns(bool) {
-        return posters[tokenId].printed;
+    function verifyPrinted(uint256 tokenId) public view returns(bool, string memory) {
+        return (posters[tokenId].printed, posters[tokenId].posterTitle);
     }
     
     
@@ -191,8 +288,8 @@ contract TicketBooking {
         names = _names;
     }
     
-    function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, string memory _date, string memory _linkSeatView) public {
-        Show show = new Show(_title, _amountOfSeatpPerRow, _rows, _date, _linkSeatView);
+    function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _linkSeatView) public {
+        Show show = new Show(_title, _amountOfSeatpPerRow, _rows, _timestamp, _linkSeatView);
         show.createTickets();
         shows.push(show);
     }
