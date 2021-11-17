@@ -34,6 +34,8 @@ contract Show is ERC721 {
     Seat private seat;
     uint256 ticketPrice = 1 ether;
     
+    mapping (uint => address) TicketApproval;
+    
     /*
     constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) public{
         title = _title;
@@ -141,6 +143,33 @@ contract Show is ERC721 {
             }
         }
     }
+    
+    function tradeTicket(address toaddress, uint256 tokenid) payable public{
+        //check owner take in new address to trade with and transfer ownership then payback to the previous owner
+        address customer = msg.sender;
+        for(uint256 i = 0; i < tickets.length; i++){
+            if(customer == tickets[i].owner && tokenid == tickets[i].tokenId){
+                i = tickets.length;
+            }
+        }
+        require(customer == tickets[tokenid].owner || TicketApproval[tokenid] == customer);
+        _transfer(customer, toaddress, tickets[tokenid].tokenId);
+        payable(toaddress).transfer(ticketPrice);
+        tickets[tokenid].owner = toaddress;
+    }
+    
+    function Approves(address toaddress, uint256 tokenid) external payable{
+        address customer = msg.sender;
+        for(uint256 i = 0; i < tickets.length; i++){
+            if(customer == tickets[i].owner && tokenid == tickets[i].tokenId){
+                i = tickets.length;
+            }
+        }
+        require(toaddress == tickets[tokenid].owner && customer != toaddress);
+        TicketApproval[tokenid] = toaddress;
+        emit Approval(customer, toaddress, tokenid);
+    }
+    
     
     
 }
