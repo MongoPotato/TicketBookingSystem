@@ -32,7 +32,7 @@ contract Show is ERC721 {
     uint private amountOfSeatpPerRow;
     address payable owner;
     Seat private seat;
-    uint256 ticketPrice = 0.1 ether;
+    uint256 ticketPrice = 1 ether;
     
     /*
     constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) public{
@@ -74,11 +74,11 @@ contract Show is ERC721 {
         }
     }
     
-    function createTickets(uint256 ticketprice) public {
+    function createTickets() public payable {
         require(msg.sender == owner, 'Not owner to of Ticket system');
-        //ticketPrice = 0.1 ether; //fix this so you can input a price
+        ticketPrice = msg.value;
         for(uint256 i = 0; i < seats.length; i++){
-            tickets.push(Ticket({tokenId: i, seller: owner, owner: owner, ticketPrice: ticketprice, sold: false, seat: seats[i]}));
+            tickets.push(Ticket({tokenId: i, seller: owner, owner: owner, ticketPrice: ticketPrice, sold: false, seat: seats[i]}));
         }
         
         for(uint256 i = 0; i < tickets.length; i++){
@@ -88,18 +88,20 @@ contract Show is ERC721 {
     
     
     function buyTicket() public payable {
-        /* //fix this so it worrks 
-        uint i = 0;
-        while(!(tickets[i].sold)){
-            i = i + 1;
+        uint counter = 0;
+        for(uint i = 0; i < tickets.length; i++){
+            if(tickets[i].sold == false){
+                counter = i;
+                i = tickets.length;
+            }
         }
-        */
+        
         address buyer = msg.sender;
         require(msg.value >= ticketPrice);
-        _transfer(ownerOf(tickets[0].tokenId), buyer, tickets[0].tokenId);
-        payable(ownerOf(tickets[0].tokenId)).transfer(msg.value);
-        tickets[0].owner = buyer;
-        tickets[0].sold = true;
+        _transfer(ownerOf(tickets[counter].tokenId), buyer, tickets[counter].tokenId);
+        payable(ownerOf(tickets[counter].tokenId)).transfer(msg.value);
+        tickets[counter].owner = buyer;
+        tickets[counter].sold = true;
     }
     
     function getTicket() view public returns(uint256 seatNumber) {
@@ -123,9 +125,9 @@ contract TicketBooking {
         names = _names;
     }
     
-    function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, string memory _date, string memory _linkSeatView, uint price) public {
+    function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, string memory _date, string memory _linkSeatView) public {
         Show show = new Show(_title, _amountOfSeatpPerRow, _rows, _date, _linkSeatView);
-        show.createTickets(price);
+        show.createTickets();
         shows.push(show);
     }
     
