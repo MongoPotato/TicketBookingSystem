@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 //import "github.com/Arachnid/solidity-stringutils/strings.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "https://github.com/bokkypoobah/BokkyPooBahsDateTimeLibrary/blob/master/contracts/BokkyPooBahsDateTimeLibrary.sol";
 
 
 contract Show is ERC721 {
@@ -17,10 +18,19 @@ contract Show is ERC721 {
     
     struct Seat{
         string title;
+        uint timestamp;
         string date;
         uint256 seatNumber;
         uint256 row;
         string linkSeatView;
+    }
+    
+    struct Poster {
+        uint256 posterTokenId;
+        address seller;
+        address owner; 
+        string posterTitle;
+        bool printed;
     }
     
     
@@ -28,6 +38,7 @@ contract Show is ERC721 {
     string private title;
     Seat[] private seats;
     Ticket[] private tickets;
+    Poster[] private posters;
     string private linkSeatView;
     uint private amountOfSeatpPerRow;
     address payable owner;
@@ -71,7 +82,7 @@ contract Show is ERC721 {
      * 
     **/
     
-    constructor(uint _Showid, string memory _title, uint _amountOfSeatpPerRow, uint _rows, string memory _date, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
+    constructor(uint _Showid, string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _date, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
         title = _title; 
         amountOfSeatpPerRow = _amountOfSeatpPerRow;
         linkSeatView = _linkSeatView;
@@ -80,15 +91,24 @@ contract Show is ERC721 {
         
         for(uint i = 0; i < _rows; i++){
             for(uint j = 0; j < amountOfSeatpPerRow; j++){
-                seats.push(Seat({title: title, date: _date, seatNumber: j, row: i, linkSeatView: linkSeatView}));
+                seats.push(Seat({title: title, timestamp: _timestamp, date: _date, seatNumber: j, row: i, linkSeatView: linkSeatView}));
             }
         }
     }
     
+    /**
+     * Returns title of this show. 
+     * 
+     **/ 
     
     function getTitle() public view returns(string memory){
         return title;
     }
+    
+      /**
+     * Returns id of this show. 
+     * 
+     **/ 
     
     function getShowId() public view returns(uint){
         return Showid;
@@ -106,6 +126,7 @@ contract Show is ERC721 {
         ticketPrice = msg.value;
         for(uint256 i = 0; i < seats.length; i++){
             tickets.push(Ticket({tokenId: i, seller: owner, owner: owner, ticketPrice: ticketPrice, sold: false, seat: seats[i]}));
+             posters.push(Poster({posterTokenId: i, seller: owner, owner: owner, posterTitle: seats[i].title, printed: false}));
         }
         
         for(uint256 i = 0; i < tickets.length; i++){
@@ -167,6 +188,38 @@ contract Show is ERC721 {
         for(uint256 i = 0; i < tickets.length; i++){
             if(customer == tickets[i].owner){
                 return int(tickets[i].tokenId);
+            }
+        }
+        return -1;
+    }
+    
+        /**
+     * Returns the Poster you have retrieved after validating
+     * else returns false with a error message. 
+     * 
+    **/
+    
+    function getPoster() view public returns(string memory, bool) {
+        address customer = msg.sender;
+        for(uint256 i = 0; i < tickets.length; i++){
+            if(customer == posters[i].owner){
+                return (posters[i].posterTitle, posters[i].printed);
+            }
+        }
+        return ("You havent validated ticket", false);
+    }
+    
+    /**
+     * Returns the tokenId of the poster you have retrieved after a show
+     * else returns -1
+     * 
+    **/
+    
+    function getPosterId() view public returns(int) {
+        address customer = msg.sender;
+        for(uint256 i = 0; i < tickets.length; i++){
+            if(customer == posters[i].owner){
+                return int(posters[i].posterTokenId);
             }
         }
         return -1;
@@ -249,6 +302,48 @@ contract Show is ERC721 {
         emit Approval(customer, toaddress, tokenid);
     }
     
+    /**
+     * Function validateTicket takes in a tokenId of a ticket and a current timestamp in unix-format(normally handled with other external tools)
+     * and verifies that token exists, is owned by msg.sender and thats its not already validated. 
+     * The token can only be validated between 30 minutes before show-start and 15 min after show-start. 
+     * If all these requirements are met, the ticket is burned and a private releasePoster function is called. 
+     * 
+     **/ 
+     
+     function validateTicket(uint256 tokenId, uint validationTimestamp) public {
+        require(_exists(tokenId) == true, "Not valid tokenId");
+        require(msg.sender != posters[tokenId].owner, "Ticket already validated");
+        require(msg.sender == tickets[tokenId].owner, "You do not own this token");
+        
+        require((tickets[tokenId].seat.timestamp -1800 <= validationTimestamp) || (tickets[tokenId].seat.timestamp + 900 >= validationTimestamp), "Not within timeslot of validation");
+        if(tickets[tokenId].sold == true) {
+            _burn(tokenId);
+            releasePoster(tokenId, msg.sender);
+        }
+     }
+     
+      /**
+     * the private function releasePoster takes in the tokenId from validateTicket and mints a new token with the Poster structure. 
+     * After minting, the poster is transfering its ownership from the owner of the booking system, to the msg.sender validating the ticket. 
+     * Internal storage updates accordingly. 
+     * Returns the posterTokenId of the released poster. 
+     * 
+     **/ 
+    
+    function releasePoster(uint256 tokenId, address receiver) private returns (uint256) {
+        
+        _mint(owner,posters[tokenId].posterTokenId);
+        _transfer(ownerOf(posters[tokenId].posterTokenId), receiver, posters[tokenId].posterTokenId);
+        delete tickets[tokenId];
+        
+        
+        posters[tokenId].owner = receiver;
+        posters[tokenId].printed = true;
+        
+        return posters[tokenId].posterTokenId;
+        
+    }
+    
     
     
 }
@@ -264,9 +359,9 @@ contract TicketBooking {
     }
     
     //title is id
-    function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, string memory _date, string memory _linkSeatView) public returns(uint) {
+    function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, string memory _date, uint _timestamp, string memory _linkSeatView) public returns(uint) {
         Showid = Showid + 1;
-        Show show = new Show(Showid, _title, _amountOfSeatpPerRow, _rows, _date, _linkSeatView);
+        Show show = new Show(Showid, _title, _amountOfSeatpPerRow, _rows, _timestamp, _date, _linkSeatView);
         show.createTickets();
         shows.push(show);
         return Showid - 1;
