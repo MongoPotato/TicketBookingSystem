@@ -43,6 +43,7 @@ contract Show is ERC721 {
     address payable owner;
     Seat private seat;
     uint256 ticketPrice = 1 ether;
+    uint showId;
     
     mapping (uint => address) TicketApproval;
     
@@ -75,22 +76,43 @@ contract Show is ERC721 {
     
     
     /**
-     * constructor that takes in the title, amountOfSeatpPerRow, the amount of rows, the date of the show, then the link for the seat
+     * constructor that takes in the showId, title, amountOfSeatpPerRow, the amount of rows, the date of the show, then the link for the seat
      * It generates every seat available for that show.
      * 
     **/
     
-    constructor(string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
+    constructor(uint _showId, string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
         title = _title; 
         amountOfSeatpPerRow = _amountOfSeatpPerRow;
         linkSeatView = _linkSeatView;
         owner = payable(msg.sender);
+        showId = _showId;
         
         for(uint i = 0; i < _rows; i++){
             for(uint j = 0; j < amountOfSeatpPerRow; j++){
                 seats.push(Seat({title: title, timestamp: _timestamp, seatNumber: j, row: i, linkSeatView: linkSeatView}));
             }
         }
+    }
+    
+    /**
+     * Returns title of this show. 
+     * 
+     * 
+     **/ 
+    
+    function getTitle() public view returns(string memory){
+        return title;
+    }
+    
+    /**
+     * Returns id of this show. 
+     * 
+     * 
+     **/ 
+     
+    function getShowId() public view returns(uint){
+        return showId;
     }
     
     /**
@@ -162,7 +184,7 @@ contract Show is ERC721 {
      * 
     **/
     
-    function getTockenId() view public returns(int) {
+    function getTokenId() view public returns(int) {
         address customer = msg.sender;
         for(uint256 i = 0; i < tickets.length; i++){
             if(customer == tickets[i].owner){
@@ -174,7 +196,7 @@ contract Show is ERC721 {
     
     /**
      * Returns the Poster you have retrieved after validating
-     * else returns -1
+     * else returns false with a error message. 
      * 
     **/
     
@@ -281,6 +303,14 @@ contract Show is ERC721 {
         emit Approval(customer, toaddress, tokenid);
     }
     
+    /**
+     * Function validateTicket takes in a tokenId of a ticket and a current timestamp in unix-format(normally handled with other external tools)
+     * and verifies that token exists, is owned by msg.sender and thats its not already validated. 
+     * The token can only be validated between 30 minutes before show-start and 15 min after show-start. 
+     * If all these requirements are met, the ticket is burned and a private releasePoster function is called. 
+     * 
+     **/ 
+     
      function validateTicket(uint256 tokenId, uint validationTimestamp) public {
         require(_exists(tokenId) == true, "Not valid tokenId");
         require(msg.sender != posters[tokenId].owner, "Ticket already validated");
@@ -294,6 +324,14 @@ contract Show is ERC721 {
         
         
     }
+    
+    /**
+     * the private function releasePoster takes in the tokenId from validateTicket and mints a new token with the Poster structure. 
+     * After minting, the poster is transfering its ownership from the owner of the booking system, to the msg.sender validating the ticket. 
+     * Internal storage updates accordingly. 
+     * Returns the posterTokenId of the released poster. 
+     * 
+     **/ 
     
     function releasePoster(uint256 tokenId, address receiver) private returns (uint256) {
         
@@ -320,19 +358,77 @@ contract TicketBooking {
     
     string private names;
     Show[] private shows;
+    uint showId = 0;
     //list of shows and not just 1 show
     constructor(string memory _names){
         names = _names;
     }
     
-    function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _linkSeatView) public {
-        Show show = new Show(_title, _amountOfSeatpPerRow, _rows, _timestamp, _linkSeatView);
+    function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _linkSeatView) public returns (uint){
+        showId = showId +1;
+        Show show = new Show(showId,_title, _amountOfSeatpPerRow, _rows, _timestamp, _linkSeatView);
         show.createTickets();
         shows.push(show);
+        return showId - 1;
     }
     
-    function getShow(uint index) public  view returns(Show show){
-        return shows[index];
+    function getShowTitleFromId(uint showid) public view returns(string memory){
+        for(uint i = 0; i < shows.length; i++){
+            if(shows[i].getShowId() == showid){
+                return shows[i].getTitle();
+            }
+        }
+        return "-1";
+    }
+    
+    function verifyShowId(uint showid) private view returns(int){
+        for(uint i = 0; i < shows.length; i++){
+            if(shows[i].getShowId() == showid){
+                return int(shows[i].getShowId());
+            }
+        }
+        return -1;
+    }
+    
+    function check(uint showid) private view returns (uint){
+        int i = verifyShowId(showid);
+        require(i == -1, "Show does not exist wrong showID");
+        return uint(i);
+    }
+    
+    function createTickets(uint showid) public{
+        uint i = check(showid);
+        shows[i].createTickets();
+    }
+    
+    function buyTicket(uint showid) public returns(uint256){
+        uint i = check(showid);
+        return shows[i].buyTicket();
+    }
+    
+    function verifyOwner(uint showid, uint256 tokenid) public view returns(address){
+        uint i = check(showid);
+        return shows[i].verifyOwner(tokenid);
+    }
+    
+    function getTokenId(uint showid) public view returns(int){
+        uint i = check(showid);
+        return shows[i].getTokenId();
+    }
+    
+    function refundTickets(uint showid) public{
+        uint i = check(showid);
+        shows[i].refundTickets(); 
+    }
+    
+    function approveTradeTickets(uint showid, address toaddress, uint256 tokenid) public{
+        uint i = check(showid);
+        shows[i].Approves(toaddress, tokenid);
+    }
+    
+    function tradeTicketsWithApproval(uint showid, address toaddress, uint256 tokenid) public {
+        uint i = check(showid);
+        shows[i].tradeTicket(toaddress, tokenid);
     }
  
     
