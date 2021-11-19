@@ -34,7 +34,6 @@ contract Show is ERC721 {
     }
     
     
-    //lacks concatenation of strings for linkSeatView
     string private title;
     Seat[] public seats;
     Ticket[] public tickets;
@@ -43,10 +42,8 @@ contract Show is ERC721 {
     uint private amountOfSeatpPerRow;
     address payable public owner;
     Seat private seat;
-    uint256 ticketPrice = 1 ether;
-    uint showId;
-    
-    mapping (uint => address) TicketApproval;
+    uint256 private ticketPrice = 1 ether;
+    uint private showId;
    
     
     /**
@@ -110,12 +107,25 @@ contract Show is ERC721 {
         return tickets[tokenid].sold;
     }
     
-    function getTokenid(uint tokenid) public  view returns(uint256){
+    function getTokenid(uint tokenid) public view returns(uint256){
         return tickets[tokenid].tokenId;
     }
     
     function getAddressSeller(uint tokenid) public view returns(address){
         return tickets[tokenid].seller;
+    }
+    
+    function getPosterOwner(uint tokenid) public view returns(address) {
+        return posters[tokenid].owner;
+    }
+    
+    function getShowValidationTime() public view returns(uint) {
+        return tickets[0].seat.timestamp;
+    }
+    
+    function burnValidatedTicket(uint tokenid, address receiverOfPoster) public {
+        _burn(tokenid);
+        releasePoster(tokenid, receiverOfPoster);
     }
     
     /**
@@ -147,23 +157,6 @@ contract Show is ERC721 {
     **/
     
     function buyTicket(uint counter, address buyer) public payable returns(uint256){
-        /*
-        uint counter = 0;
-        for(uint i = 0; i < tickets.length; i++){
-            if(tickets[i].sold == false){
-                counter = i;
-                i = tickets.length;
-            }
-        }
-        
-        address buyer = msg.sender;
-        require(msg.value == ticketPrice);
-        _transfer(ownerOf(tickets[counter].tokenId), buyer, tickets[counter].tokenId);
-        (bool sent, bytes memory data) = payable(tickets[counter].seller).call{value: ticketPrice}("");
-        require(sent, "Failed to send ether");
-        tickets[counter].owner = buyer;
-        tickets[counter].sold = true;
-        */
         _transfer(tickets[counter].seller, buyer, tickets[counter].tokenId);
         tickets[counter].owner = buyer;
         tickets[counter].sold = true;
@@ -348,7 +341,7 @@ contract Show is ERC721 {
      * 
      **/ 
     
-    function releasePoster(uint256 tokenId, address receiver) private returns (uint256) {
+    function releasePoster(uint256 tokenId, address receiver) private returns (string memory, uint256) {
         
         _mint(owner,posters[tokenId].posterTokenId);
         _transfer(ownerOf(posters[tokenId].posterTokenId), receiver, posters[tokenId].posterTokenId);
@@ -358,8 +351,12 @@ contract Show is ERC721 {
         posters[tokenId].owner = receiver;
         posters[tokenId].printed = true;
         
-        return posters[tokenId].posterTokenId;
+        return (posters[tokenId].posterTitle,posters[tokenId].posterTokenId);
         
+    }
+    
+    function verifyPrinted(uint256 tokenId) public view returns(bool, string memory) {
+        return (posters[tokenId].printed, posters[tokenId].posterTitle);
     }
     
     

@@ -92,6 +92,28 @@ contract TicketBooking {
         return shows[showid].verifyOwner(tokenid);
     }
     
+    function validateTicket(uint showid, uint256 tokenid, uint validationTime) public returns(string memory, uint256){
+        check(showid);
+        require(msg.sender == verifyOwner(showid, tokenid), "You do not own this ticket");
+        require(msg.sender != shows[showid].getPosterOwner(tokenid), "Ticket already validated!");
+        
+        require((shows[showid].getShowValidationTime() -1800 <= validationTime) || (shows[showid].getShowValidationTime() + 900 >= validationTime), "Not within timeslot of validation");
+        
+        if(shows[showid].getSoldStatus(tokenid) == true){
+            shows[showid].burnValidatedTicket(tokenid, msg.sender);
+            
+        }
+    }
+    
+    function verifyPrinted(uint showid, uint256 tokenid) public view returns(bool, string memory) {
+        check(showid);
+        require(msg.sender != verifyOwner(showid, tokenid), "You have not validated your ticket");
+        require(msg.sender == shows[showid].getPosterOwner(tokenid), "You do not own this poster");
+        
+        return shows[showid].verifyPrinted(tokenid);
+        
+    }
+    
     function getTokenId(uint showid) public view returns(int){
         check(showid);
         return shows[showid].getTokenId();
@@ -114,8 +136,8 @@ contract TicketBooking {
         for(uint j = 0; j < shows[showid].getAmountOfticket(); j++){
             if((shows[showid].getSoldStatus(j)) == true){
                 (bool sent, bytes memory data) = payable(shows[showid].getOwner(j)).call{value: shows[showid].getTicketPrice(j)}("");
-                shows[showid].refundTickets(j, shows[showid].getOwner(j));
                 require(sent, "Failed to send ether");
+                shows[showid].refundTickets(j, shows[showid].getOwner(j));
             }
         }
     }
@@ -152,11 +174,12 @@ contract TicketBooking {
                 j = shows[showid].getAmountOfticket();
             }
         }
-        require(checkTokenId(showid, tokenid));
-        require(toaddress == shows[showid].getOwner(tokenid) && TicketApproval[tokenid] == customer); 
-        require(msg.value == shows[showid].getTicketPrice(tokenid));
+        require(checkTokenId(showid, tokenid), "tokenid does not exist on show");
+        require(toaddress == shows[showid].getOwner(tokenid) && TicketApproval[tokenid] == customer, "toadress is not owner of token"); 
+        require(msg.value == shows[showid].getTicketPrice(tokenid), "price is not equal to value entered");
         (bool sent, bytes memory data) = payable(toaddress).call{value: msg.value}("");
         require(sent, "Failed to send ether");
+        shows[showid].tradeTicket(toaddress, customer, tokenid);
         shows[showid].setOwner(tokenid, customer);
     }
 }
