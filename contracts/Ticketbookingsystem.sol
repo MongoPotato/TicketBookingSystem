@@ -19,6 +19,7 @@ contract Show is ERC721 {
     struct Seat{
         string title;
         uint timestamp;
+        string date;
         uint256 seatNumber;
         uint256 row;
         string linkSeatView;
@@ -54,7 +55,7 @@ contract Show is ERC721 {
      * 
     **/
     
-    constructor(uint _showId, string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
+    constructor(uint _showId, string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _date, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
         title = _title; 
         amountOfSeatpPerRow = _amountOfSeatpPerRow;
         linkSeatView = _linkSeatView;
@@ -63,7 +64,7 @@ contract Show is ERC721 {
         
         for(uint i = 0; i < _rows; i++){
             for(uint j = 0; j < amountOfSeatpPerRow; j++){
-                seats.push(Seat({title: title, timestamp: _timestamp, seatNumber: j, row: i, linkSeatView: linkSeatView}));
+                seats.push(Seat({title: title, timestamp: _timestamp, date: _date, seatNumber: j, row: i, linkSeatView: linkSeatView}));
             }
         }
     }
@@ -150,6 +151,16 @@ contract Show is ERC721 {
             }
         }
         return -1;
+    }
+    
+    /**
+     * Returns the price of ticket if it has been initialized 
+     * 
+    **/
+    
+    function getTicketPrice() view public returns(uint256){
+        require(tickets.length != 0, "Tickets are not initialized");
+        return ticketPrice;
     }
     
     /**
