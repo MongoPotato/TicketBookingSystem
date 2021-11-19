@@ -36,12 +36,12 @@ contract Show is ERC721 {
     
     //lacks concatenation of strings for linkSeatView
     string private title;
-    Seat[] private seats;
-    Ticket[] private tickets;
+    Seat[] public seats;
+    Ticket[] public tickets;
     Poster[] private posters;
     string private linkSeatView;
     uint private amountOfSeatpPerRow;
-    address payable owner;
+    address payable public owner;
     Seat private seat;
     uint256 ticketPrice = 1 ether;
     uint showId;
@@ -55,12 +55,13 @@ contract Show is ERC721 {
      * 
     **/
     
-    constructor(uint _showId, string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _date, string memory _linkSeatView) ERC721("Group 9 Ticket System", "G9TSys"){
+    constructor(uint _showId, string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _date, string memory _linkSeatView, address payable creatorAddress) ERC721("Group 9 Ticket System", "G9TSys"){
         title = _title; 
         amountOfSeatpPerRow = _amountOfSeatpPerRow;
         linkSeatView = _linkSeatView;
-        owner = payable(msg.sender);
+        owner = creatorAddress;
         showId = _showId;
+        setApprovalForAll(address(this), true);
         
         for(uint i = 0; i < _rows; i++){
             for(uint j = 0; j < amountOfSeatpPerRow; j++){
@@ -83,8 +84,10 @@ contract Show is ERC721 {
      * Returns id of this show. 
      * 
      * 
-     **/ 
+     **/
      
+     
+    
     function getShowId() public view returns(uint){
         return showId;
     }
@@ -97,8 +100,8 @@ contract Show is ERC721 {
     **/
     
     function createTickets() public payable {
-        require(msg.sender == owner, 'Not owner to of Ticket system');
-        ticketPrice = msg.value;
+        //(msg.sender == owner, 'Not owner to of Ticket system');
+        //ticketPrice = msg.value;
         for(uint256 i = 0; i < seats.length; i++){
             tickets.push(Ticket({tokenId: i, seller: owner, owner: owner, ticketPrice: ticketPrice, sold: false, seat: seats[i]}));
             posters.push(Poster({posterTokenId: i, seller: owner, owner: owner, posterTitle: seats[i].title, printed: false}));
@@ -151,6 +154,11 @@ contract Show is ERC721 {
             }
         }
         return -1;
+    }
+    
+    function getTickets() public view returns(Ticket[] memory){
+        
+        return tickets;
     }
     
     /**
