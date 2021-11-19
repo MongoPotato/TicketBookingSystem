@@ -70,11 +70,6 @@ contract TicketBooking {
         require(cond == true, "Show does not exist wrong showID");
     }
     
-    function createTickets(uint showid) public{
-        //bool cond = verifyShowId(showid);
-        shows[showid].createTickets();
-    }
-    
     function buyTicket(uint showid) public payable returns(uint256){
         check(showid);
         uint counter = 0;
@@ -106,9 +101,23 @@ contract TicketBooking {
         check(showid);
         return shows[showid].getTickets().length;
     }
-    function refundTickets(uint showid) public{
+    function refundTickets(uint showid) public payable{
         check(showid);
-        shows[showid].refundTickets(); 
+        require(msg.sender == shows[showid].getAddressSeller(0));
+        uint counter = 0;
+        for(uint i = 0; i < shows[showid].getAmountOfticket(); i++){
+            if(shows[showid].getSoldStatus(i) == true){
+                counter = counter + 1;
+            }
+        }
+        require(msg.value == shows[showid].getTicketPrice(0) * counter);
+        for(uint i = 0; i < shows[showid].getAmountOfticket(); i++){
+            if(shows[showid].getSoldStatus(i) == true){
+                shows[showid].refundTickets(i, shows[showid].getOwner(i));
+                (bool sent, bytes memory data) = payable(shows[showid].getOwner(i)).call{value: shows[showid].getTicketPrice(i)}(""); 
+                require(sent, "Failed to send ether");
+            }
+        }
     }
     
     function checkTokenId(uint showid, uint tokenid) public view returns(bool){
