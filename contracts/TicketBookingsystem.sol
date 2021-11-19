@@ -34,6 +34,13 @@ contract TicketBooking {
     
     mapping (uint => address) TicketApproval;
     
+    
+    /**
+     * 
+     * function create, creates new show and then pushes it to the show array and it also initializes all the tickets in a Show
+     * 
+    **/
+    
     function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _date, string memory _linkSeatView) public returns (address newContract){
         Show show = new Show(showId,_title, _amountOfSeatpPerRow, _rows, _timestamp, _date, _linkSeatView, payable(msg.sender));
         show.createTickets();
@@ -43,9 +50,21 @@ contract TicketBooking {
         return address(show);
     }
     
+     /**
+     * 
+     * returns address of the show
+     * 
+    **/
+    
     function getAddress(uint showid) public view returns (address) {
         return address(shows[showid]);
     }
+    
+     /**
+     * 
+     * fetches the title for the show from the show id
+     * 
+    **/
     
     function getShowTitleFromId(uint showid) public view returns(string memory){
         for(uint i = 0; i < shows.length; i++){
@@ -56,6 +75,12 @@ contract TicketBooking {
         return "-1";
     }
     
+     /**
+     * 
+     * verifies if the id of the show exists
+     * 
+    **/
+    
     function verifyShowId(uint showid) private view returns(bool){
         for(uint i = 0; i < shows.length; i++){
             if(shows[i].getShowId() == showid){
@@ -65,10 +90,23 @@ contract TicketBooking {
         return false;
     }
     
+     /**
+     * 
+     * checks if the showid exists
+     * 
+    **/
+    
     function check(uint showid) private view{
         bool cond = verifyShowId(showid);
         require(cond == true, "Show does not exist wrong showID");
     }
+    
+    /**
+     * 
+     * Created a buyTicket function where you input the price of the show 
+     * by default 1 ether and it returns the tokenid for your ticket.
+     * 
+    **/
     
     function buyTicket(uint showid) public payable returns(uint256){
         check(showid);
@@ -87,10 +125,23 @@ contract TicketBooking {
         return shows[showid].buyTicket(counter, buyer);
     }
     
+    
+    /**
+     * 
+     * verifies if the owner exists and has a token with that tokenid
+     * 
+    **/
+    
     function verifyOwner(uint showid, uint256 tokenid) public view returns(address){
         check(showid);
         return shows[showid].verifyOwner(tokenid);
     }
+    
+    /**
+     * 
+     * validates the ticket with the validationTime that is defined in UNIX time to validate the ticket.
+     * 
+    **/
     
     function validateTicket(uint showid, uint256 tokenid, uint validationTime) public returns(string memory, uint256){
         check(showid);
@@ -104,6 +155,12 @@ contract TicketBooking {
             
         }
     }
+    
+    /**
+     * 
+     * verifyPrinted returns the validaton of the ticket with your post token.
+     * 
+    **/
     
     function verifyPrinted(uint showid, uint256 tokenid) public view returns(bool, string memory) {
         check(showid);
@@ -123,6 +180,14 @@ contract TicketBooking {
         check(showid);
         return shows[showid].getTickets().length;
     }
+    
+    /**
+     * 
+     * refunds checks if you are the owner of the Show and then you can call on the refund 
+     * that goes through the list and refunds each person that has purchased a token
+     * 
+    **/
+    
     function refundTickets(uint showid) public payable returns(uint){
         check(showid);
         require(msg.sender == shows[showid].getAddressSeller(0));
@@ -152,6 +217,15 @@ contract TicketBooking {
         return false;
     }
     
+    /**
+     * Function Approves takes in the address of the person you want to trade the ticket with and get money. 
+     * If we take an example where C request the ticket of D. Then D sends this request and C approves the 
+     * request in tradeTicket and accepts the trade with C. C obtains the token from D while D gains his ether back for the 
+     * price of the ticket he bought.
+     * 
+     * Your tockenId you want to give away and the address of the person you want to trade with (example on top D tockenId and C address)
+    **/
+    
     function approveTradeTickets(uint showid, address toaddress, uint256 tokenid) public{
         check(showid);
         address customer = msg.sender;
@@ -164,6 +238,19 @@ contract TicketBooking {
         TicketApproval[tokenid] = toaddress; //we then send an approval
         shows[showid].Approves(customer, toaddress, tokenid);
     }
+    
+     /**
+     * Function tradeticket takes in the address of the person you want to trade with and your tokenid
+     * you want to trade to that address. 
+     * 
+     * Requires that you have an Approval from the other person and that you own the token that
+     * you have in your input.
+     * 
+     * Then we transfer the token ticket to the toaddress and the sender receives the amount of 
+     * ether he used to buy his ether token ticket.
+     * 
+     * takes in address of the person that has approved the trade (D) and the tockenId of that ticket that is traded.
+    **/
     
     function tradeTicketsWithApproval(uint showid, address toaddress, uint256 tokenid) public payable {
         check(showid);

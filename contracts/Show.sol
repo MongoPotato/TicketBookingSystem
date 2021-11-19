@@ -66,22 +66,11 @@ contract Show is ERC721 {
             }
         }
     }
-    
-    /**
-     * Returns title of this show. 
-     * 
-     * 
-     **/ 
+
     
     function getTitle() public view returns(string memory){
         return title;
     }
-    
-    /**
-     * Returns id of this show. 
-     * 
-     * 
-     **/
      
     function getShowId() public view returns(uint){
         return showId;
@@ -281,31 +270,10 @@ contract Show is ERC721 {
         tickets[tokenid].sold = false;
     }
     
-    /**
-     * Function tradeticket takes in the address of the person you want to trade with and your tokenid
-     * you want to trade to that address. 
-     * 
-     * Requires that you have an Approval from the other person and that you own the token that
-     * you have in your input.
-     * 
-     * Then we transfer the token ticket to the toaddress and the sender receives the amount of 
-     * ether he used to buy his ether token ticket.
-     * 
-     * takes in address of the person that has approved the trade (D) and the tockenId of that ticket that is traded.
-    **/
     
     function tradeTicket(address toaddress, address customer, uint tokenid) payable public{
         _transfer(toaddress, customer, tokenid);
     }
-    
-    /**
-     * Function Approves takes in the address of the person you want to trade the ticket with and get money. 
-     * If we take an example where C request the ticket of D. Then D sends this request and C approves the 
-     * request in tradeTicket and accepts the trade with C. C obtains the token from D while D gains his ether back for the 
-     * price of the ticket he bought.
-     * 
-     * Your tockenId you want to give away and the address of the person you want to trade with (example on top D tockenId and C address)
-    **/
     
     function Approves(address customer, address toaddress, uint256 tokenid) external payable{
         emit Approval(customer, toaddress, tokenid);
