@@ -46,34 +46,7 @@ contract Show is ERC721 {
     uint showId;
     
     mapping (uint => address) TicketApproval;
-    
-    /*
-    constructor(string memory _title, uint _amountOfSeatpPerRow, uint rows, string memory _date, string memory _linkSeatView) public{
-        title = _title;
-        amountOfSeatpPerRow = _amountOfSeatpPerRow;
-        //string memory s1 = "/row/";
-        //string memory temp;
-        //string memory s2;
-        //string memory s3 = "/";
-        linkSeatView = _linkSeatView;
-        
-        for(uint i = 0; i < rows; i++){
-            //linkSeatView = _linkSeatView;
-            //s2 = uint2str(i);
-            //temp = s1.toSlice().concat(s2.toSlice()); // /row/ + i
-            //linkSeatView = (linkSeatView.toSlice().concat(temp.toSlice())); //linkSeatView + /row/ + i
-            //temporary = linkSeatView;
-            
-            for(uint j = 0; j < amountOfSeatpPerRow; j++){
-                //temp = (s3.toSlice().concat(uint2str(j).toSlice())); // "/" + j
-                //linkSeatView = (linkSeatView.toSlice().concat.temp.toSlice()); // linkSeatView + / + j
-                seats.push(Seat({title: title, date: _date, seatNumber: j, row: i, linkSeatView: linkSeatView}));
-                //linkSeatView = temporary;
-            }
-        }
-    }
-    */
-    
+   
     
     /**
      * constructor that takes in the showId, title, amountOfSeatpPerRow, the amount of rows, the date of the show, then the link for the seat
@@ -120,8 +93,8 @@ contract Show is ERC721 {
      * and creates a ticket for every seat.
      * It transfers ownership of every ticket to the organizer of the show
      *  
-     * 
     **/
+    
     function createTickets() public payable {
         require(msg.sender == owner, 'Not owner to of Ticket system');
         ticketPrice = msg.value;
@@ -155,7 +128,8 @@ contract Show is ERC721 {
         address buyer = msg.sender;
         require(msg.value == ticketPrice);
         _transfer(ownerOf(tickets[counter].tokenId), buyer, tickets[counter].tokenId);
-        payable(ownerOf(tickets[counter].tokenId)).transfer(msg.value);
+        (bool sent, bytes memory data) = payable(tickets[counter].seller).call{value: ticketPrice}("");
+        require(sent, "Failed to send ether");
         tickets[counter].owner = buyer;
         tickets[counter].sold = true;
         
@@ -235,6 +209,21 @@ contract Show is ERC721 {
         return tickets[tokenId].owner;
     }
     
+    /**
+     * 
+     * Check amount of tickets sold to then input amount in refundTickets function
+     * 
+    **/
+    
+    function checkTicketSold() public view returns(uint){
+        uint counter = 0;
+        for(uint i = 0; i < tickets.length; i++){
+            if(tickets[i].sold == true){
+                counter = counter + 1;
+            }
+        }
+        return counter;
+    }
     
     /**
      * Function refundTickets requires that the organizer of the show 
@@ -242,14 +231,22 @@ contract Show is ERC721 {
      * ownership of the token to the organizer and transfer the value
      * of the tickets back to each person that have bought a ticket.
      * 
-     * 
     **/
+    
     function refundTickets() payable public{
         require(msg.sender == owner);
+        uint counter = 0;
+        for(uint i = 0; i < tickets.length; i++){
+            if(tickets[i].sold == true){
+                counter = counter + 1;
+            }
+        }
+        require(msg.value == ticketPrice * counter);
         for(uint i = 0; i < tickets.length; i++){
             if(tickets[i].sold == true){
                 _transfer(ownerOf(tickets[i].tokenId), owner, tickets[i].tokenId);
-                payable(ownerOf(tickets[i].tokenId)).transfer(ticketPrice); //i think this transfer funds to the owner of the ticket ??
+                (bool sent, bytes memory data) = payable(tickets[i].owner).call{value: ticketPrice}(""); 
+                require(sent, "Failed to send ether");
                 tickets[i].owner = owner;
                 tickets[i].sold = false;
             }
@@ -266,6 +263,7 @@ contract Show is ERC721 {
      * Then we transfer the token ticket to the toaddress and the sender receives the amount of 
      * ether he used to buy his ether token ticket.
      * 
+     * takes in address of the person that has approved the trade (D) and the tockenId of that ticket that is traded.
     **/
     
     function tradeTicket(address toaddress, uint256 tokenid) payable public{
@@ -275,19 +273,21 @@ contract Show is ERC721 {
                 i = tickets.length;
             }
         }
-        require(customer == tickets[tokenid].owner && TicketApproval[tokenid] == customer); 
-        _transfer(customer, toaddress, tickets[tokenid].tokenId);
-        payable(toaddress).transfer(ticketPrice); //i think this transfer funds to the owner of the ticket ??
-        tickets[tokenid].owner = toaddress;
+        require(toaddress == tickets[tokenid].owner && TicketApproval[tokenid] == customer); 
+        require(msg.value == ticketPrice);
+        _transfer(toaddress, customer, tickets[tokenid].tokenId);
+        (bool sent, bytes memory data) = payable(toaddress).call{value: ticketPrice}("");
+        require(sent, "Failed to send ether");
+        tickets[tokenid].owner = customer;
     }
     
     /**
      * Function Approves takes in the address of the person you want to trade the ticket with and get money. 
-     * If we take an example where C request the ticket of D. Then C sends this request and D approves the 
-     * request and accepts the trade with C. C obtains the token from D while D gains his ether back for the 
+     * If we take an example where C request the ticket of D. Then D sends this request and C approves the 
+     * request in tradeTicket and accepts the trade with C. C obtains the token from D while D gains his ether back for the 
      * price of the ticket he bought.
      * 
-     * 
+     * Your tockenId you want to give away and the address of the person you want to trade with (example on top D tockenId and C address)
     **/
     
     function Approves(address toaddress, uint256 tokenid) external payable{
@@ -297,7 +297,7 @@ contract Show is ERC721 {
                 i = tickets.length;
             }
         }
-        require(toaddress == tickets[tokenid].owner && customer != toaddress); //we require that the address of sender is 
+        require(customer == tickets[tokenid].owner && customer != toaddress); //we require that the address of sender is 
         //different from the address you want to send to and that the token you send in belongs to the address you send in
         TicketApproval[tokenid] = toaddress; //we then send an approval
         emit Approval(customer, toaddress, tokenid);
@@ -353,7 +353,7 @@ contract Show is ERC721 {
     
     
 }
-
+/*
 contract TicketBooking {
     
     string private names;
@@ -432,4 +432,4 @@ contract TicketBooking {
     }
  
     
-}
+}*/
