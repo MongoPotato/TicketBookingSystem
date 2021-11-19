@@ -86,10 +86,32 @@ contract Show is ERC721 {
      * 
      **/
      
-     
-    
     function getShowId() public view returns(uint){
         return showId;
+    }
+    
+    function getAmountOfticket() public view returns(uint){
+        return tickets.length;
+    }
+    
+    function setOwner(uint tokenid, address newaddr) public{
+        tickets[tokenid].owner = newaddr;
+    }
+
+    function getOwner(uint tokenid) public view returns(address){
+        return tickets[tokenid].owner;
+    }
+
+    function getTicketPrice(uint tokenid) public view returns(uint256){
+        return tickets[tokenid].ticketPrice;
+    }
+
+    function getSoldStatus(uint tokenid) public view returns(bool){
+        return tickets[tokenid].sold;
+    }
+    
+    function getTokenid(uint tokenid) public returns(uint256){
+        return tickets[tokenid].tokenId;
     }
     
     /**
@@ -285,19 +307,8 @@ contract Show is ERC721 {
      * takes in address of the person that has approved the trade (D) and the tockenId of that ticket that is traded.
     **/
     
-    function tradeTicket(address toaddress, uint256 tokenid) payable public{
-        address customer = msg.sender;
-        for(uint256 i = 0; i < tickets.length; i++){ //checks if you have a ticket
-            if(customer == tickets[i].owner && tokenid == tickets[i].tokenId){
-                i = tickets.length;
-            }
-        }
-        require(toaddress == tickets[tokenid].owner && TicketApproval[tokenid] == customer); 
-        require(msg.value == ticketPrice);
-        _transfer(toaddress, customer, tickets[tokenid].tokenId);
-        (bool sent, bytes memory data) = payable(toaddress).call{value: ticketPrice}("");
-        require(sent, "Failed to send ether");
-        tickets[tokenid].owner = customer;
+    function tradeTicket(address toaddress, address customer, uint tokenid) payable public{
+        _transfer(toaddress, customer, tokenid);
     }
     
     /**
@@ -309,16 +320,7 @@ contract Show is ERC721 {
      * Your tockenId you want to give away and the address of the person you want to trade with (example on top D tockenId and C address)
     **/
     
-    function Approves(address toaddress, uint256 tokenid) external payable{
-        address customer = msg.sender;
-        for(uint256 i = 0; i < tickets.length; i++){ //checks if the sender has a ticket and if the token he sends in is valid
-            if(customer == tickets[i].owner && tokenid == tickets[i].tokenId){
-                i = tickets.length;
-            }
-        }
-        require(customer == tickets[tokenid].owner && customer != toaddress); //we require that the address of sender is 
-        //different from the address you want to send to and that the token you send in belongs to the address you send in
-        TicketApproval[tokenid] = toaddress; //we then send an approval
+    function Approves(address customer, address toaddress, uint256 tokenid) external payable{
         emit Approval(customer, toaddress, tokenid);
     }
     

@@ -32,6 +32,8 @@ contract TicketBooking {
         names = _names;
     }
     
+    mapping (uint => address) TicketApproval;
+    
     function create(string memory _title, uint _amountOfSeatpPerRow, uint _rows, uint _timestamp, string memory _date, string memory _linkSeatView) public returns (address newContract){
         showId = showId + 1;
         Show show = new Show(showId,_title, _amountOfSeatpPerRow, _rows, _timestamp, _date, _linkSeatView, payable(msg.sender));
@@ -42,8 +44,8 @@ contract TicketBooking {
         return address(show);
     }
     
-    function getAddress(uint showId) public returns (address) {
-        return address(shows[showId]);
+    function getAddress(uint showid) public view returns (address) {
+        return address(shows[showid]);
     }
     
     function getShowTitleFromId(uint showid) public view returns(string memory){
@@ -90,8 +92,8 @@ contract TicketBooking {
         return shows[i].getTokenId();
     }
     
-    function getTickets(uint showId) public returns(uint256){
-        uint i = check(showId);
+    function getTickets(uint showid) public view returns(uint256){
+        uint i = check(showid);
         return shows[i].getTickets().length;
     }
     function refundTickets(uint showid) public{
@@ -99,13 +101,43 @@ contract TicketBooking {
         shows[i].refundTickets(); 
     }
     
-    function approveTradeTickets(uint showid, address toaddress, uint256 tokenid) public{
+    function checkTokenId(uint showid, uint tokenid) public returns(bool){
         uint i = check(showid);
-        shows[i].Approves(toaddress, tokenid);
+        for(uint j = 0; j < shows[i].getAmountOfticket(); j++){
+            if(tokenid == shows[i].getTokenid(tokenid)){
+                return true;
+            }
+        }
+        return false;
     }
     
-    function tradeTicketsWithApproval(uint showid, address toaddress, uint256 tokenid) public {
+    function approveTradeTickets(uint showid, address toaddress, uint256 tokenid) public{
         uint i = check(showid);
-        shows[i].tradeTicket(toaddress, tokenid);
+        address customer = msg.sender;
+         for(uint256 j = 0; j < shows[i].getAmountOfticket(); j++){ //checks if the sender has a ticket and if the token he sends in is valid
+            if(customer == shows[i].getOwner(j)){
+                j = shows[i].getAmountOfticket();
+            }
+        }
+        require(checkTokenId(i, tokenid));
+        TicketApproval[tokenid] = toaddress; //we then send an approval
+        shows[i].Approves(customer, toaddress, tokenid);
+    }
+    
+    function tradeTicketsWithApproval(uint showid, address toaddress, uint256 tokenid) public payable {
+        uint i = check(showid);
+        address customer = msg.sender;
+
+        for(uint j = 0; j < shows[i].getAmountOfticket(); j++){ //checks if you have a ticket
+            if(customer == shows[i].getOwner(j)){
+                j = shows[i].getAmountOfticket();
+            }
+        }
+        require(checkTokenId(i, tokenid));
+        require(toaddress == shows[i].getOwner(tokenid) && TicketApproval[tokenid] == customer); 
+        require(msg.value == shows[i].getTicketPrice(tokenid));
+        (bool sent, bytes memory data) = payable(toaddress).call{value: msg.value}("");
+        require(sent, "Failed to send ether");
+        shows[i].setOwner(tokenid, customer);
     }
 }
