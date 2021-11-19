@@ -110,8 +110,12 @@ contract Show is ERC721 {
         return tickets[tokenid].sold;
     }
     
-    function getTokenid(uint tokenid) public returns(uint256){
+    function getTokenid(uint tokenid) public  view returns(uint256){
         return tickets[tokenid].tokenId;
+    }
+    
+    function getAddressSeller(uint tokenid) public view returns(address){
+        return tickets[tokenid].seller;
     }
     
     /**
@@ -142,7 +146,8 @@ contract Show is ERC721 {
      * returns the TokenId
     **/
     
-    function buyTicket() public payable returns(uint256){
+    function buyTicket(uint counter, address buyer) public payable returns(uint256){
+        /*
         uint counter = 0;
         for(uint i = 0; i < tickets.length; i++){
             if(tickets[i].sold == false){
@@ -158,7 +163,10 @@ contract Show is ERC721 {
         require(sent, "Failed to send ether");
         tickets[counter].owner = buyer;
         tickets[counter].sold = true;
-        
+        */
+        _transfer(tickets[counter].seller, buyer, tickets[counter].tokenId);
+        tickets[counter].owner = buyer;
+        tickets[counter].sold = true;
         return tickets[counter].tokenId;
     }
     
