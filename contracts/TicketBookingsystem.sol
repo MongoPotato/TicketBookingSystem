@@ -101,20 +101,20 @@ contract TicketBooking {
         check(showid);
         return shows[showid].getTickets().length;
     }
-    function refundTickets(uint showid) public payable{
+    function refundTickets(uint showid) public payable returns(uint){
         check(showid);
         require(msg.sender == shows[showid].getAddressSeller(0));
         uint counter = 0;
         for(uint i = 0; i < shows[showid].getAmountOfticket(); i++){
-            if(shows[showid].getSoldStatus(i) == true){
+            if((shows[showid].getSoldStatus(i)) == true){
                 counter = counter + 1;
             }
         }
         require(msg.value == shows[showid].getTicketPrice(0) * counter);
-        for(uint i = 0; i < shows[showid].getAmountOfticket(); i++){
-            if(shows[showid].getSoldStatus(i) == true){
-                shows[showid].refundTickets(i, shows[showid].getOwner(i));
-                (bool sent, bytes memory data) = payable(shows[showid].getOwner(i)).call{value: shows[showid].getTicketPrice(i)}(""); 
+        for(uint j = 0; j < shows[showid].getAmountOfticket(); j++){
+            if((shows[showid].getSoldStatus(j)) == true){
+                (bool sent, bytes memory data) = payable(shows[showid].getOwner(j)).call{value: shows[showid].getTicketPrice(j)}("");
+                shows[showid].refundTickets(j, shows[showid].getOwner(j));
                 require(sent, "Failed to send ether");
             }
         }
